@@ -55,7 +55,7 @@
 
   /* Modal */
   #overlay { display: none; position: fixed; inset: 0; z-index: 50; }
-  #modal { position: fixed; z-index: 100; background: #111127; border: 1px solid #2a2a5a; border-radius: 12px; padding: 16px; width: 240px; box-shadow: 0 8px 32px #00000099; animation: fadeIn .15s ease; }
+  #modal { position: fixed; z-index: 100; background: #111127; border: 1px solid #2a2a5a; border-radius: 12px; padding: 16px; width: 88vw; max-width: 320px; box-shadow: 0 8px 32px #00000099; animation: fadeIn .15s ease; }
   @keyframes fadeIn { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:translateY(0); } }
   .modal-label { font-size: 11px; color: #888; letter-spacing: .1em; display: block; margin-bottom: 4px; }
   .modal-title { font-size: 13px; color: #e0e0ff; font-weight: 500; margin-bottom: 12px; }
@@ -373,14 +373,9 @@ function openCell(ex, wt, e) {
   const modal = document.getElementById('modal');
   modal.style.display = 'block';
   document.getElementById('overlay').style.display = 'block';
-
-  const rect = e.currentTarget.getBoundingClientRect();
-  let x = rect.left + window.scrollX;
-  let y = rect.bottom + window.scrollY + 8;
-  x = Math.min(x, window.innerWidth - 260);
-  y = Math.min(y, window.innerHeight - 230 + window.scrollY);
-  modal.style.left = x + 'px';
-  modal.style.top = y + 'px';
+  modal.style.left = '50%';
+  modal.style.top = '50%';
+  modal.style.transform = 'translate(-50%, -50%)';
 }
 
 function closeModal() {
