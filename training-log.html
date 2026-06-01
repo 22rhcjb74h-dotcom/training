@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Training Log">
+<title>TRAINING LOG</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Bebas+Neue&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0d0d1a; color: #e0e0ff; font-family: 'DM Mono', 'Courier New', monospace; min-height: 100vh; padding: 24px 16px 60px; }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: #0d0d1a; }
+  ::-webkit-scrollbar-thumb { background: #2a2a5a; border-radius: 3px; }
+  input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.8) sepia(1) hue-rotate(200deg); cursor: pointer; }
+  input { outline: none; }
+  input:focus { border-color: #ff2244 !important; }
+  button { font-family: 'DM Mono', monospace; }
+
+  #header { text-align: center; margin-bottom: 20px; }
+  #header h1 { font-family: 'Bebas Neue', sans-serif; font-size: clamp(32px,8vw,52px); letter-spacing: .15em; color: #ff2244; text-shadow: 0 0 30px #ff224466; }
+  #header p { margin-top: 4px; font-size: 11px; color: #555; letter-spacing: .2em; }
+
+  #toolbar { display: flex; gap: 8px; justify-content: center; margin-bottom: 16px; flex-wrap: wrap; }
+  .tb-btn { background: #1a1a2e; border: 1px solid #2a2a5a; color: #888; border-radius: 8px; padding: 6px 14px; cursor: pointer; font-size: 11px; letter-spacing: .1em; transition: all .2s; }
+  .tb-btn:hover { background: #2a2a5a; color: #e0e0ff; }
+  .tb-btn.active { background: #1a3a1a; border-color: #00cc66; color: #00cc66; }
+
+  #legend { display: flex; gap: 10px; justify-content: center; margin-bottom: 16px; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 6px; background: #111127; padding: 4px 10px; border-radius: 20px; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 2px; }
+
+  #table-wrap { overflow-x: auto; border-radius: 12px; border: 1px solid #1e1e3a; }
+  table { border-collapse: separate; border-spacing: 2px; background: #111122; width: 100%; min-width: 500px; }
+  thead th { background: #0d0d1a; color: #aaaacc; font-size: 11px; padding: 7px 10px; font-weight: 500; white-space: nowrap; min-width: 90px; }
+  thead th.corner { color: #ff2244; font-size: 10px; letter-spacing: .2em; text-align: left; position: sticky; left: 0; z-index: 2; }
+  tbody td.wt-cell { background: #0d0d1a; color: #ff2244; font-size: 12px; font-weight: 500; letter-spacing: .1em; padding: 6px 10px; white-space: nowrap; position: sticky; left: 0; z-index: 1; }
+  td { padding: 2px; }
+
+  .cell-btn { width: 100%; min-width: 80px; height: 44px; border-radius: 6px; cursor: pointer; font-size: 11px; font-family: 'DM Mono', monospace; letter-spacing: .02em; transition: all .15s; display: flex; align-items: center; justify-content: center; border-width: 1px; border-style: solid; }
+  .cell-btn:hover { transform: scale(1.05); filter: brightness(1.3); }
+
+  .add-btn { background: #1a1a2e; border: 1px dashed #2a2a5a; border-radius: 4px; color: #555; cursor: pointer; padding: 3px 10px; font-size: 13px; white-space: nowrap; transition: background .2s; }
+  .add-btn:hover { background: #2a2a5a; }
+  .add-input { background: #1a1a2e; border: 1px solid #2a2a6a; border-radius: 4px; color: #e0e0ff; padding: 3px 6px; font-size: 11px; font-family: 'DM Mono', monospace; }
+  .confirm-btn { background: #ff2244; border: none; border-radius: 4px; color: #fff; cursor: pointer; padding: 3px 7px; font-size: 12px; }
+  .cancel-btn { background: transparent; border: none; color: #555; cursor: pointer; font-size: 12px; }
+
+  .delete-x { cursor: pointer; color: #ff4466; opacity: .4; font-size: 11px; margin-left: 4px; transition: opacity .15s; }
+  .delete-x:hover { opacity: 1; }
+  .drag-handle { color: #555; opacity: .5; cursor: grab; font-size: 10px; margin-right: 3px; }
+  .drag-handle:hover { opacity: 1; }
+
+  /* Modal */
+  #overlay { display: none; position: fixed; inset: 0; z-index: 50; }
+  #modal { position: fixed; z-index: 100; background: #111127; border: 1px solid #2a2a5a; border-radius: 12px; padding: 16px; width: 240px; box-shadow: 0 8px 32px #00000099; animation: fadeIn .15s ease; }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:translateY(0); } }
+  .modal-label { font-size: 11px; color: #888; letter-spacing: .1em; display: block; margin-bottom: 4px; }
+  .modal-title { font-size: 13px; color: #e0e0ff; font-weight: 500; margin-bottom: 12px; }
+  .date-input { background: #0d0d1a; border: 1px solid #2a2a6a; border-radius: 6px; color: #e0e0ff; padding: 6px 10px; font-size: 13px; font-family: 'DM Mono', monospace; width: 100%; transition: border-color .2s; }
+  .today-btn { margin-top: 4px; background: transparent; border: none; color: #555; font-size: 10px; cursor: pointer; padding: 0; letter-spacing: .1em; }
+  .sets-row { display: flex; gap: 6px; margin-top: 6px; }
+  .set-btn { flex: 1; padding: 7px 0; border-radius: 6px; cursor: pointer; font-size: 12px; font-family: 'DM Mono', monospace; transition: all .15s; }
+  .modal-actions { display: flex; gap: 8px; margin-top: 14px; }
+  .save-btn { flex: 2; padding: 8px 0; background: #cc0022; border: none; border-radius: 6px; color: #fff; cursor: pointer; font-size: 12px; letter-spacing: .1em; transition: background .15s; }
+  .save-btn:hover { background: #ee0033; }
+  .del-btn { flex: 1; padding: 8px 0; background: #1a1a2e; border: 1px solid #2a2a4a; border-radius: 6px; color: #555; cursor: pointer; font-size: 11px; transition: background .15s; }
+  .del-btn:hover { background: #2a2a3a; }
+
+  /* Toast */
+  #toast { display: none; position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%); z-index: 200; border-radius: 20px; padding: 8px 20px; font-size: 12px; letter-spacing: .1em; white-space: nowrap; box-shadow: 0 4px 20px #00000088; animation: toastIn .2s ease; }
+  @keyframes toastIn { from { opacity:0; transform:translateX(-50%) translateY(10px); } to { opacity:1; transform:translateX(-50%) translateY(0); } }
+  .toast-ok { background: #003d1a; border: 1px solid #00cc66; color: #00cc66; }
+  .toast-err { background: #3d0000; border: 1px solid #ff2244; color: #ff2244; }
+
+  /* Edit mode dim */
+  .edit-active .cell-btn { opacity: .5; cursor: default; }
+  th[draggable="true"] { cursor: grab; }
+  tr[draggable="true"] { cursor: grab; }
+</style>
+</head>
+<body>
+
+<div id="header">
+  <h1>TRAINING LOG</h1>
+  <p id="header-sub">セルをタップして記録を入力</p>
+</div>
+
+<div id="toolbar">
+  <button class="tb-btn" id="edit-btn" onclick="toggleEdit()">✏️ 編集</button>
+  <button class="tb-btn" onclick="exportCSV()">⬇ エクスポート</button>
+  <button class="tb-btn" onclick="document.getElementById('file-input').click()">⬆ インポート</button>
+  <input type="file" id="file-input" accept=".csv" style="display:none" onchange="importCSV(event)">
+</div>
+
+<div id="legend">
+  <div class="legend-item" style="border:1px solid #f5c51844">
+    <div class="legend-dot" style="background:#3d3000;border:2px solid #f5c518"></div>
+    <span style="font-size:10px;color:#f5c518">1セット</span>
+  </div>
+  <div class="legend-item" style="border:1px solid #ff6b3544">
+    <div class="legend-dot" style="background:#3d1500;border:2px solid #ff6b35"></div>
+    <span style="font-size:10px;color:#ff6b35">2セット</span>
+  </div>
+  <div class="legend-item" style="border:1px solid #ff224444">
+    <div class="legend-dot" style="background:#3d0000;border:2px solid #ff2244"></div>
+    <span style="font-size:10px;color:#ff2244">3セット+</span>
+  </div>
+  <div class="legend-item" style="border:1px solid #2a2a4a">
+    <div class="legend-dot" style="background:#1a1a2e;border:2px solid #2a2a4a"></div>
+    <span style="font-size:10px;color:#555">未記録</span>
+  </div>
+</div>
+
+<div id="table-wrap"></div>
+
+<!-- Modal -->
+<div id="overlay" onclick="closeModal()"></div>
+<div id="modal" style="display:none">
+  <div class="modal-label">種目</div>
+  <div class="modal-title" id="modal-title"></div>
+  <div class="modal-label">達成日</div>
+  <input type="date" class="date-input" id="modal-date">
+  <button class="today-btn" onclick="setToday()">今日の日付を入力</button>
+  <div style="margin-top:12px">
+    <div class="modal-label">セット数</div>
+    <div class="sets-row">
+      <button class="set-btn" id="set1" onclick="selectSet(1)">1</button>
+      <button class="set-btn" id="set2" onclick="selectSet(2)">2</button>
+      <button class="set-btn" id="set3" onclick="selectSet(3)">3</button>
+    </div>
+  </div>
+  <div class="modal-actions">
+    <button class="save-btn" onclick="saveCell()">保存</button>
+    <button class="del-btn" onclick="deleteCell()">削除</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── State ──────────────────────────────────────────────
+const LS_KEY = 'training_log_v1';
+
+function defaultState() {
+  return {
+    exercises: ["ベンチプレス","スクワット","デッドリフト","懸垂","ショルダープレス","ローイング"],
+    weights:   [20,30,40,50,60,70,80,90,100,110,120],
+    data: {}
+  };
+}
+
+let state = loadState();
+let editMode = false;
+let selectedCell = null; // {ex, wt}
+let selectedSets = 1;
+let dragSrcIdx = null;
+let dragType = null; // 'ex' | 'wt'
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch(e) {}
+  return defaultState();
+}
+
+function saveState() {
+  localStorage.setItem(LS_KEY, JSON.stringify(state));
+}
+
+function cellKey(ex, wt) { return ex + '__' + wt; }
+
+// ── Colors ─────────────────────────────────────────────
+function cellStyle(sets) {
+  if (!sets) return { bg:'#1a1a2e', border:'#2a2a4a', color:'#444' };
+  if (sets===1) return { bg:'#3d3000', border:'#f5c518', color:'#f5c518' };
+  if (sets===2) return { bg:'#3d1500', border:'#ff6b35', color:'#ff6b35' };
+  return            { bg:'#3d0000', border:'#ff2244', color:'#ff2244' };
+}
+
+function setColor(n) {
+  if (n===1) return { border:'#f5c51866', activeBg:'#3d3000', color:'#f5c518' };
+  if (n===2) return { border:'#ff6b3566', activeBg:'#3d1500', color:'#ff6b35' };
+  return            { border:'#ff224466', activeBg:'#3d0000', color:'#ff2244' };
+}
+
+function fmtDate(d) {
+  if (!d) return '';
+  const dt = new Date(d);
+  return (dt.getMonth()+1) + '/' + dt.getDate();
+}
+
+function todayStr() {
+  return new Date().toISOString().split('T')[0];
+}
+
+// ── Render ─────────────────────────────────────────────
+function render() {
+  const wrap = document.getElementById('table-wrap');
+  const { exercises, weights, data } = state;
+
+  let html = '<table><thead><tr>';
+  html += `<th class="corner">KG ↓ / 種目 →</th>`;
+
+  exercises.forEach((ex, i) => {
+    const drag = editMode ? `draggable="true" ondragstart="onDragStart(event,${i},'ex')" ondragenter="onDragEnter(event,${i},'ex')" ondragend="onDragEnd()" ondragover="event.preventDefault()"` : '';
+    html += `<th ${drag} style="cursor:${editMode?'grab':'default'}">`;
+    if (editMode) html += `<span class="drag-handle">⠿</span>`;
+    html += escHtml(ex);
+    if (editMode) html += `<span class="delete-x" onclick="deleteExercise(${i})">✕</span>`;
+    html += '</th>';
+  });
+
+  // Add exercise button
+  html += `<th style="background:#0d0d1a;padding:4px 8px">
+    <button class="add-btn" id="add-ex-btn" onclick="showAddExercise()" style="${editMode?'display:none':''}">+ 種目</button>
+    <span id="add-ex-form" style="display:none;gap:4px;align-items:center">
+      <input class="add-input" id="new-ex-input" placeholder="種目名" style="width:80px" onkeydown="if(event.key==='Enter')confirmAddExercise()">
+      <button class="confirm-btn" onclick="confirmAddExercise()">✓</button>
+      <button class="cancel-btn" onclick="cancelAddExercise()">✕</button>
+    </span>
+  </th>`;
+  html += '</tr></thead><tbody>';
+
+  weights.forEach((wt, wi) => {
+    const drag = editMode ? `draggable="true" ondragstart="onDragStart(event,${wi},'wt')" ondragenter="onDragEnter(event,${wi},'wt')" ondragend="onDragEnd()" ondragover="event.preventDefault()"` : '';
+    html += `<tr ${drag}>`;
+    html += `<td class="wt-cell" style="cursor:${editMode?'grab':'default'}">`;
+    if (editMode) {
+      html += `<span class="delete-x" onclick="deleteWeight(${wi})">✕</span>`;
+      html += `<span class="drag-handle">⠿</span>`;
+    }
+    html += wt + ' kg</td>';
+
+    exercises.forEach(ex => {
+      const cell = data[cellKey(ex, wt)];
+      const s = cellStyle(cell?.sets);
+      const label = cell ? fmtDate(cell.date) : '';
+      const click = editMode ? '' : `onclick="openCell('${escAttr(ex)}',${wt},event)"`;
+      html += `<td><button class="cell-btn" ${click}
+        style="background:${s.bg};border-color:${s.border};color:${s.color}"
+      >${escHtml(label)}</button></td>`;
+    });
+    html += '<td></td></tr>';
+  });
+
+  // Add weight row
+  html += `<tr><td class="wt-cell" style="text-align:right">
+    <button class="add-btn" id="add-wt-btn" onclick="showAddWeight()" style="${editMode?'display:none':''}">+ 重量</button>
+    <span id="add-wt-form" style="display:none;gap:4px;align-items:center;justify-content:flex-end">
+      <input class="add-input" id="new-wt-input" type="number" placeholder="kg" style="width:60px" onkeydown="if(event.key==='Enter')confirmAddWeight()">
+      <button class="confirm-btn" onclick="confirmAddWeight()">✓</button>
+      <button class="cancel-btn" onclick="cancelAddWeight()">✕</button>
+    </span>
+  </td>`;
+  exercises.forEach(() => html += '<td></td>');
+  html += '<td></td></tr>';
+
+  html += '</tbody></table>';
+  wrap.innerHTML = html;
+
+  if (editMode) wrap.classList.add('edit-active');
+  else wrap.classList.remove('edit-active');
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function escAttr(s) {
+  return String(s).replace(/'/g,"\\'");
+}
+
+// ── Edit Mode ──────────────────────────────────────────
+function toggleEdit() {
+  editMode = !editMode;
+  const btn = document.getElementById('edit-btn');
+  const sub = document.getElementById('header-sub');
+  if (editMode) {
+    btn.textContent = '✓ 完了';
+    btn.classList.add('active');
+    sub.textContent = '✏️ 編集モード — ドラッグで並び替え、×で削除';
+  } else {
+    btn.textContent = '✏️ 編集';
+    btn.classList.remove('active');
+    sub.textContent = 'セルをタップして記録を入力';
+  }
+  render();
+}
+
+function deleteExercise(i) {
+  const ex = state.exercises[i];
+  state.weights.forEach(wt => delete state.data[cellKey(ex, wt)]);
+  state.exercises.splice(i, 1);
+  saveState(); render();
+}
+
+function deleteWeight(i) {
+  const wt = state.weights[i];
+  state.exercises.forEach(ex => delete state.data[cellKey(ex, wt)]);
+  state.weights.splice(i, 1);
+  saveState(); render();
+}
+
+// ── Add Exercise / Weight ──────────────────────────────
+function showAddExercise() {
+  document.getElementById('add-ex-btn').style.display = 'none';
+  const form = document.getElementById('add-ex-form');
+  form.style.display = 'flex';
+  document.getElementById('new-ex-input').focus();
+}
+function confirmAddExercise() {
+  const val = document.getElementById('new-ex-input').value.trim();
+  if (val && !state.exercises.includes(val)) {
+    state.exercises.push(val);
+    saveState();
+  }
+  render();
+}
+function cancelAddExercise() { render(); }
+
+function showAddWeight() {
+  document.getElementById('add-wt-btn').style.display = 'none';
+  const form = document.getElementById('add-wt-form');
+  form.style.display = 'flex';
+  document.getElementById('new-wt-input').focus();
+}
+function confirmAddWeight() {
+  const val = parseInt(document.getElementById('new-wt-input').value);
+  if (!isNaN(val) && !state.weights.includes(val)) {
+    state.weights.push(val);
+    state.weights.sort((a,b) => a-b);
+    saveState();
+  }
+  render();
+}
+function cancelAddWeight() { render(); }
+
+// ── Drag & Drop ────────────────────────────────────────
+function onDragStart(e, idx, type) {
+  dragSrcIdx = idx; dragType = type;
+  e.dataTransfer.effectAllowed = 'move';
+}
+function onDragEnter(e, idx, type) {
+  if (dragType !== type || dragSrcIdx === idx) return;
+  if (type === 'ex') {
+    const arr = state.exercises;
+    const [moved] = arr.splice(dragSrcIdx, 1);
+    arr.splice(idx, 0, moved);
+    dragSrcIdx = idx;
+    saveState(); render();
+  } else {
+    const arr = state.weights;
+    const [moved] = arr.splice(dragSrcIdx, 1);
+    arr.splice(idx, 0, moved);
+    dragSrcIdx = idx;
+    saveState(); render();
+  }
+}
+function onDragEnd() { dragSrcIdx = null; dragType = null; }
+
+// ── Cell Modal ─────────────────────────────────────────
+function openCell(ex, wt, e) {
+  if (editMode) return;
+  selectedCell = { ex, wt };
+  const cell = state.data[cellKey(ex, wt)] || {};
+  document.getElementById('modal-title').textContent = ex + ' — ' + wt + 'kg';
+  document.getElementById('modal-date').value = cell.date || todayStr();
+  selectSet(cell.sets || 1);
+
+  const modal = document.getElementById('modal');
+  modal.style.display = 'block';
+  document.getElementById('overlay').style.display = 'block';
+
+  const rect = e.currentTarget.getBoundingClientRect();
+  let x = rect.left + window.scrollX;
+  let y = rect.bottom + window.scrollY + 8;
+  x = Math.min(x, window.innerWidth - 260);
+  y = Math.min(y, window.innerHeight - 230 + window.scrollY);
+  modal.style.left = x + 'px';
+  modal.style.top = y + 'px';
+}
+
+function closeModal() {
+  document.getElementById('modal').style.display = 'none';
+  document.getElementById('overlay').style.display = 'none';
+  selectedCell = null;
+}
+
+function selectSet(n) {
+  selectedSets = n;
+  [1,2,3].forEach(i => {
+    const btn = document.getElementById('set'+i);
+    const c = setColor(i);
+    btn.style.border = '1px solid ' + c.border;
+    btn.style.color = c.color;
+    btn.style.background = (i === n) ? c.activeBg : '#0d0d1a';
+    btn.style.fontWeight = (i === n) ? '700' : '400';
+  });
+}
+
+function setToday() {
+  document.getElementById('modal-date').value = todayStr();
+}
+
+function saveCell() {
+  if (!selectedCell) return;
+  const date = document.getElementById('modal-date').value;
+  state.data[cellKey(selectedCell.ex, selectedCell.wt)] = { date, sets: selectedSets };
+  saveState(); render(); closeModal();
+}
+
+function deleteCell() {
+  if (!selectedCell) return;
+  delete state.data[cellKey(selectedCell.ex, selectedCell.wt)];
+  saveState(); render(); closeModal();
+}
+
+// ── CSV ────────────────────────────────────────────────
+function exportCSV() {
+  const { exercises, weights, data } = state;
+  const meta = '#exercises:' + exercises.join('|') + '\n#weights:' + weights.join('|') + '\n';
+  const header = ['重量(kg)', ...exercises].join(',');
+  const rows = weights.map(wt => {
+    const cols = exercises.map(ex => {
+      const c = data[cellKey(ex, wt)];
+      return c ? c.date + '|' + c.sets : '';
+    });
+    return [wt, ...cols].join(',');
+  });
+  const csv = '\uFEFF' + meta + header + '\n' + rows.join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'training_log_' + todayStr() + '.csv';
+  a.click(); URL.revokeObjectURL(url);
+  showToast('CSVを保存しました ✓', 'ok');
+}
+
+function importCSV(e) {
+  const file = e.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const text = ev.target.result.replace(/^\uFEFF/, '');
+      const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+      let exs = null, wts = null;
+      const dataLines = [];
+      for (const line of lines) {
+        if (line.startsWith('#exercises:')) exs = line.replace('#exercises:','').split('|');
+        else if (line.startsWith('#weights:')) wts = line.replace('#weights:','').split('|').map(Number);
+        else if (!line.startsWith('重量')) dataLines.push(line);
+      }
+      if (!exs || !wts) throw new Error('bad format');
+      const newData = {};
+      dataLines.forEach(line => {
+        const cols = line.split(',');
+        const wt = parseInt(cols[0]);
+        exs.forEach((ex, i) => {
+          const val = cols[i+1];
+          if (val) { const [date, sets] = val.split('|'); newData[cellKey(ex,wt)] = { date, sets: parseInt(sets) }; }
+        });
+      });
+      state = { exercises: exs, weights: wts, data: newData };
+      saveState(); render();
+      showToast('インポート完了 ✓', 'ok');
+    } catch {
+      showToast('読み込み失敗 — 正しいCSVを選択してください', 'err');
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
+// ── Toast ──────────────────────────────────────────────
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = type === 'ok' ? 'toast-ok' : 'toast-err';
+  t.style.display = 'block';
+  setTimeout(() => { t.style.display = 'none'; }, 2500);
+}
+
+// ── Init ───────────────────────────────────────────────
+render();
+</script>
+</body>
+</html>
